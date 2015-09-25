@@ -1,6 +1,4 @@
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(cache=TRUE)
-```
+
 ---
 title: "Practical Machine Learning Final Project"
 author: "Metin Turgal"
@@ -163,3 +161,8 @@ predictionTest <- predict(modelRF,newdata=testingClean)
 Submitting the predictions with 20 out 20 correct answers reveals that the model is also succesful with the out of sample data. (0% with 20 n sample size).
 
 
+```{r, include=FALSE}
+   # add this chunk to end of mycode.rmd
+   file.rename(from="scripts/mycode.md", 
+               to="README.md")
+```
