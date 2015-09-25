@@ -1,3 +1,6 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
 ---
 title: "Practical Machine Learning Final Project"
 author: "Metin Turgal"
@@ -5,49 +8,46 @@ date: "Thursday, September 24, 2015"
 output: html_document
 ---
 
-## Synopsis
+## Synopsis  
 This report aims to review and predict the manner in which the "Qualitative Activity Recognition of Weight Lifting Exercises" (Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H.) paper is done. This review used the same testing and training data that the paper used to achieve their results. 
-
-##Background
+  
+##Background  
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset)
 
-##Data
+##Data  
+The training data for this project are available here:  
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv  
+The test data are available here:  
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv  
 
-The training data for this project are available here: 
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.  
 
-https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
-
-The test data are available here: 
-
-https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
-
-The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment. 
-
-
-## Downloading Data
-Since data have empty records and records with "#DIV/0!" besides "NA"'s we will upload them with the argument "na.strings=c("NA","#DIV/0!","")"" to make it easier in the cleaning part.
+## Downloading Data  
+Since data have empty records and records with "#DIV/0!" besides "NA"'s we will upload them with the argument "na.strings=c("NA","#DIV/0!","")"" to make it easier in the cleaning part.  
 ```{r}
 if(!file.exists("pml-training.csv")){
     URL <- ("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
     download.file(URL,"pml-training.csv")
     training <- read.csv("pml-training.csv",na.strings=c("NA","#DIV/0!",""))
     }
+training <- read.csv("pml-training.csv",na.strings=c("NA","#DIV/0!",""))
 
 if(!file.exists("pml-testing.csv")){
     URL <- ("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
     download.file(URL,"pml-testing.csv")
     testing <- read.csv("pml-testing.csv",na.strings=c("NA","#DIV/0!",""))
     }
-      
+testing <- read.csv("pml-testing.csv",na.strings=c("NA","#DIV/0!",""))    
+
 ```
   
-##Pre-Processing 
-First we are going the load the packages that will be utilized. In case the packages are not downloaded before they should be first downloading using the command: install.packages("<package name>")
+##Pre-Processing  
+First we are going the load the packages that will be utilized. In case the packages are not downloaded before they should be first downloading using the command: install.packages("<package name>")  
 ```{r}
 library(caret)
 library(rattle)
 ```
-
+  
 Checking the summary of the training data
 ```{r}
 summary(training)
@@ -60,8 +60,7 @@ trainingNAN <- training[,colSums(is.na(training))<nrow(training)*0.7]
 testingNAN<- testing[,colSums(is.na(testing))<nrow(testing)*0.7]
 ```
   
-Checking also for columns with Zero- and Near Zero-Variance, we see that there is one column remaining with Zero- and Near Zero-Variance. Looking for the column number we see that it is the column "new_window"
-
+Checking also for columns with Zero- and Near Zero-Variance, we see that there is one column remaining with Zero- and Near Zero-Variance. Looking for the column number we see that it is the column "new_window"  
 ```{r}
 nzv <- nearZeroVar(trainingNAN, saveMetrics=TRUE)
 sum(nzv$nzv)
@@ -70,27 +69,26 @@ nzv <- nearZeroVar(testingNAN, saveMetrics=TRUE)
 sum(nzv$nzv)
 which(nzv$nzv==TRUE)
 ```
-
+   
 Besides new_window, timestamps columns, X, user_name and num_window do not have predictive value. So we remove them as well. 
 ```{r}
 trainingClean <- trainingNAN[, 8:ncol(trainingNAN)]
 testingClean <- testingNAN[, 8:ncol(testingNAN)]
 ```
-
+    
 The data is shrinked from 160 columns to 53 columns
 ```{r}
 dim(trainingClean)
 dim(trainingClean)
 ```
-
+  
 We should note that even though the column numbers are the same in both training and testing data, testing data does not have the classe column and also have an additional problem_id column. 
 ```{r}
 colnames(trainingClean)
 colnames(testingClean)
 ``` 
-
-##Partioning Data
-
+  
+##Partioning Data  
 Knowing from prior investigation of the data it is apparent that it will take a lot of time to perform the random forest and classification modelling on the whole training set (19622 rows) and also because it is better to have a validation dataset beside a sub-training and sub-testing set, we are going to split the training data into three part sub-training dataset (0.6), sub-testing dataset (0.2) and also sub-validating set (0.2).
 ``` {r}
 set.seed(227)
@@ -104,35 +102,64 @@ sub_testing <-remaining_training[trainIndex2,]
 sub_validating <-remaining_training[-trainIndex2,]
 
 ```
-
-## Building Models
+  
+## Building Models  
 In order to find the model with best prediction accuracy  we will apply two algorithms, classfication tree and also, similarly to the original research, random forest. Comparing the accuracy let us decide decide on which algorithm to use at the end.  
 
-### Classifciation Tree
+### Classifciation Tree  
 ```{r}
+set.seed(227)
 modelRPART <- train(sub_training$classe~.,data=sub_training, method="rpart")
 modelRPART
 ```
-
+  
 The accuracy is below 0.5 which is quite low compared to the result in the paper. Even though it is quite unlikely the model will perform better on the testing set and validating set we will do it anyway to be sure.  
 ```{r}
-predictionTest <- predict(modelRPART, sub_testing, type="class")
-predictionValidate <-predict(modelRPART, sub_validating,type=class)
+predictionTest <- predict(modelRPART, sub_testing)
+predictionValidate <-predict(modelRPART, sub_validating)
 ```
-
+  
 to see the result we both check the results for testing and validating sets:
 ```{r}
 confusionMatrix(predictionTest, sub_testing$classe)
 confusionMatrix(predictionValidate, sub_validating$classe)
 ```
-
+   
 As expected both the accuracy of the model on the testing and validating sets are below 0.5
+So we move on to Random Forest algorithm, on which we expect a higher accuracy based on the paper results
 
-So we move on to Random Forest algorithm, on which we expect a higher accuracy based on the paper results.  
-### Random Forests
 
+### Random Forests  
+To achive a high accuracy repeated cross validation with 10 fold is used:
 ```{r}
+set.seed(227)
 control<-trainControl(method="repeatedcv",number=10, repeats=3)
 modelRF<-  train(classe ~ .,data=sub_training,method="rf",trControl=control)
 
 ```
+  
+With Random Forest the accuracy seems much higher:
+```{r}
+modelRF
+```
+  
+Seeing how it performs with the   testing and validating subset:
+```{r}
+predictRFtest <-predict(modelRF,newdata=sub_testing)
+confusionMatrix(predictRFtest,sub_testing$classe)
+predictRFvalidate <-predict(modelRF,newdata=sub_validating)
+confusionMatrix(predictRFvalidate,sub_validating$classe)
+```
+  
+## Results and Out of Sample Error Predicting  
+On both testing and validating set the model performs much higher compared to the Classification Tree.
+The in-sample error for sub_testing data is 100-99.24=  0.76 and for sub_validating data it is = 100-99.44 =0.56.
+In the light of this result and considering the out of sample error is usually worse than in-sample error  the error rate should be between %0.5 -%2 percent.
+  
+##Applying the Model on the Test Data   
+```{r}
+predictionTest <- predict(modelRF,newdata=testingClean)
+```
+Submitting the predictions with 20 out 20 correct answers reveals that the model is also succesful with the out of sample data. (0% with 20 n sample size).
+
+
