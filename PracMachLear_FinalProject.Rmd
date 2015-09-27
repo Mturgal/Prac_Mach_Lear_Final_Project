@@ -5,6 +5,7 @@ author: "Metin Turgal"
 date: "Thursday, September 24, 2015"
 output: html_document
 ---
+# Practical Machine Learning Final Project
 
 ## Synopsis  
 This report aims to review and predict the manner in which the "Qualitative Activity Recognition of Weight Lifting Exercises" (Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H.) paper is done. This review used the same testing and training data that the paper used to achieve their results. 
